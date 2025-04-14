@@ -1,0 +1,68 @@
+Proyecto viaticos para poder empezar a hacer las cosas
+
+Base de datos: Nombre viaticos
+
+CREATE TABLE recurso (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    usuario NVARCHAR(100) NOT NULL,
+    clave NVARCHAR(255) NOT NULL,         -- encriptada con bcrypt
+    p2 NVARCHAR(255) NOT NULL,            -- clave sin encriptar (por retrocompatibilidad)
+    tipousuario INT NOT NULL,             -- 1 = regular, 2 = administrador
+    area_id NVARCHAR(10) NOT NULL,        -- relación con tabla areas
+    CONSTRAINT FK_recurso_area FOREIGN KEY (area_id) REFERENCES areas(id)
+);
+
+
+CREATE TABLE areas (
+    id NVARCHAR(10) PRIMARY KEY,
+    descripcion NVARCHAR(100) NOT NULL
+);
+
+
+CREATE TABLE presupuesto (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    descripcion NVARCHAR(100) NOT NULL
+);
+
+
+CREATE TABLE viatico (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    recurso_id INT NOT NULL,
+    presupuesto_id INT NOT NULL,
+    descripcion NVARCHAR(255) NOT NULL,
+    fecha DATETIME NOT NULL DEFAULT GETDATE(),
+    estado INT NOT NULL DEFAULT 0, -- 0: pendiente, 1: aprobado, 2: corregir, 3: en trámite
+    CONSTRAINT FK_viatico_recurso FOREIGN KEY (recurso_id) REFERENCES recurso(id),
+    CONSTRAINT FK_viatico_presupuesto FOREIGN KEY (presupuesto_id) REFERENCES presupuesto(id)
+);
+
+
+CREATE TABLE archivos (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    viatico_id INT NOT NULL,
+    ruta NVARCHAR(255) NOT NULL, -- path en servidor
+    nombre_original NVARCHAR(255) NOT NULL,
+    CONSTRAINT FK_archivo_viatico FOREIGN KEY (viatico_id) REFERENCES viatico(id)
+);
+
+
+CREATE TABLE auditoria (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    viatico_id INT NOT NULL,
+    recurso_id INT NOT NULL,
+    accion NVARCHAR(100) NOT NULL, -- ejemplo: 'Creación', 'Edición', 'Cambio de estado a En trámite'
+    fecha DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_auditoria_viatico FOREIGN KEY (viatico_id) REFERENCES viatico(id),
+    CONSTRAINT FK_auditoria_recurso FOREIGN KEY (recurso_id) REFERENCES recurso(id)
+);
+
+
+-- Áreas
+INSERT INTO areas (id, descripcion) VALUES ('TI', 'Tecnología'), ('ADM', 'Administración');
+
+-- Presupuestos
+INSERT INTO presupuesto (descripcion) VALUES ('Ventas'), ('Soporte técnico'), ('Gastos operativos');
+
+-- Usuario admin
+INSERT INTO recurso (usuario, clave, p2, tipousuario, area_id)
+VALUES ('admin', 'clave-encriptada', 'admin123', 2, 'TI');
